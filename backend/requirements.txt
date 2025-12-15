@@ -1,0 +1,12 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+sqlalchemy>=2.0.28
+asyncpg>=0.29.0
+alembic>=1.13.1
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+python-dotenv>=1.0.1
+openai>=1.13.0
+anthropic>=0.18.0
+psycopg2-binary>=2.9.9
+tenacity>=8.2.3
