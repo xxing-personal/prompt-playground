@@ -15,7 +15,8 @@ app/models/
 ├── prompt.py            # Prompt model
 ├── prompt_version.py    # PromptVersion model
 ├── dataset.py           # Dataset and DatasetItem models
-└── eval.py              # EvalRun and EvalResult models
+├── eval.py              # EvalRun and EvalResult models
+└── playground_run.py    # PlaygroundRun model (run history)
 ```
 
 ---
@@ -607,6 +608,104 @@ result = await db.execute(
 
 ---
 
+## PlaygroundRun
+
+### Location
+
+`app/models/playground_run.py`
+
+### Definition
+
+```python
+from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.orm import relationship
+from app.core.database import Base
+from app.models.base import UUIDMixin, TimestampMixin
+
+class PlaygroundRun(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "playground_runs"
+
+    prompt_id = Column(UUID(as_uuid=True), ForeignKey("prompts.id"), nullable=False)
+    version_id = Column(UUID(as_uuid=True), ForeignKey("prompt_versions.id"), nullable=True)
+    config = Column(JSONB, nullable=False)
+    results = Column(JSONB, nullable=False)
+
+    # Relationships
+    prompt = relationship("Prompt")
+    version = relationship("PromptVersion")
+```
+
+### Fields
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Unique identifier |
+| prompt_id | UUID | FK, NOT NULL | Reference to parent prompt |
+| version_id | UUID | FK, NULL | Reference to specific version |
+| config | JSONB | NOT NULL | Run configuration (template, variables, models) |
+| results | JSONB | NOT NULL | Array of execution results |
+| created_at | DateTime | NOT NULL | Creation timestamp |
+| updated_at | DateTime | NOT NULL | Last update timestamp |
+
+### Config Schema
+
+```json
+{
+  "templateType": "chat",
+  "templateText": null,
+  "templateMessages": [{"role": "user", "content": "{{question}}"}],
+  "variables": {"question": "Hello"},
+  "models": ["gpt-4o", "claude-3-5-sonnet"]
+}
+```
+
+### Results Schema
+
+```json
+[
+  {
+    "modelId": "gpt-4o",
+    "output": "Hello! How can I help?",
+    "latencyMs": 450,
+    "tokens": {"prompt": 10, "completion": 8, "total": 18},
+    "costUsd": 0.0003
+  }
+]
+```
+
+### Usage
+
+```python
+# Save a playground run
+run = PlaygroundRun(
+    prompt_id=prompt_id,
+    version_id=version_id,
+    config={
+        "templateType": "chat",
+        "templateMessages": [...],
+        "variables": {"question": "Hello"},
+        "models": ["gpt-4o"]
+    },
+    results=[
+        {"modelId": "gpt-4o", "output": "...", "latencyMs": 450}
+    ]
+)
+db.add(run)
+await db.commit()
+
+# Query runs by version
+result = await db.execute(
+    select(PlaygroundRun)
+    .where(PlaygroundRun.version_id == version_id)
+    .order_by(PlaygroundRun.created_at.desc())
+    .limit(10)
+)
+runs = result.scalars().all()
+```
+
+---
+
 ## Related Documentation
 
 - [Database Schema](../architecture/database-schema.md)
@@ -615,4 +714,4 @@ result = await db.execute(
 
 ---
 
-*Models reference generated December 2024*
+*Models reference updated December 2024*

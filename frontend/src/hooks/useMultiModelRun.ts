@@ -28,6 +28,7 @@ interface RunParams {
   templateMessages?: { role: string; content: string }[]
   variables: Record<string, string>
   models: ModelConfig[]
+  onComplete?: (params: RunParams, results: ExecutionResult[]) => void
 }
 
 export function useMultiModelRun() {
@@ -41,6 +42,8 @@ export function useMultiModelRun() {
     params: Omit<RunParams, 'models'> & { model: ModelConfig }
   ): Promise<ExecutionResult> => {
     const startTime = Date.now()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
 
     try {
       const response = await fetch('/api/v1/playground/run', {
@@ -56,7 +59,7 @@ export function useMultiModelRun() {
           max_tokens: params.model.maxTokens,
           reasoning_effort: params.model.reasoning_effort,
         }),
-
+        signal: controller.signal,
       })
 
       const data = await response.json()
@@ -87,14 +90,19 @@ export function useMultiModelRun() {
         completedAt: new Date(),
       }
     } catch (err) {
+      const errorMessage = err instanceof Error 
+        ? (err.name === 'AbortError' ? 'Request timed out after 2 minutes' : err.message)
+        : 'Unknown error'
       return {
         modelId: params.model.id,
         modelName: params.model.model,
         output: '',
         metrics: { latencyMs: Date.now() - startTime, promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: null },
-        error: err instanceof Error ? err.message : 'Unknown error',
+        error: errorMessage,
         completedAt: new Date(),
       }
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -134,7 +142,12 @@ export function useMultiModelRun() {
       return result
     })
 
-    await Promise.all(promises)
+    const allResults = await Promise.all(promises)
+    
+    // Call onComplete callback if provided
+    if (params.onComplete) {
+      params.onComplete(params, allResults)
+    }
   }, [])
 
   const clearResults = useCallback(() => {
@@ -145,10 +158,21 @@ export function useMultiModelRun() {
     })
   }, [])
 
+  const setResults = useCallback((results: ExecutionResult[]) => {
+    const resultsMap = new Map<string, ExecutionResult>()
+    results.forEach((r) => resultsMap.set(r.modelId, r))
+    setState({
+      isRunning: false,
+      runningModels: new Set(),
+      results: resultsMap,
+    })
+  }, [])
+
   return {
     ...state,
     runMultiModel,
     clearResults,
+    setResults,
     resultsArray: Array.from(state.results.values()),
   }
 }

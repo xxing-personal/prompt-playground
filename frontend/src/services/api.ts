@@ -73,6 +73,58 @@ export const promptsApi = {
     api.post<PromptVersion>(`/prompts/${promptId}/versions/${versionNumber}/demote`, { label }),
 };
 
+export interface PlaygroundRunConfig {
+  templateType: 'text' | 'chat';
+  templateText?: string;
+  templateMessages?: { role: string; content: string }[];
+  variables: Record<string, string>;
+  models: Array<{
+    id: string;
+    model: string;
+    provider: string;
+    temperature: number;
+    maxTokens: number;
+    reasoning_effort?: string;
+    enabled: boolean;
+  }>;
+}
+
+export interface PlaygroundRunResultItem {
+  modelId: string;
+  modelName: string;
+  output: string;
+  metrics: {
+    latencyMs: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    costUsd: number | null;
+  };
+  error?: string;
+  completedAt: string;
+}
+
+export interface PlaygroundRunData {
+  id: string;
+  prompt_id: string;
+  version_id: string | null;
+  config: PlaygroundRunConfig;
+  results: PlaygroundRunResultItem[];
+  created_at: string;
+}
+
+export interface VersionRunResult {
+  version_id: string;
+  version_number: number;
+  output: string | null;
+  metrics: {
+    latency_ms: number;
+    total_tokens: number;
+    cost_usd: number | null;
+  };
+  error: string | null;
+}
+
 export const playgroundApi = {
   compile: (data: {
     template_type: string;
@@ -95,6 +147,25 @@ export const playgroundApi = {
     temperature?: number;
     max_tokens?: number;
   }) => api.post(`/playground/run-version/${versionId}`, data),
+  saveRun: (data: {
+    prompt_id: string;
+    version_id?: string;
+    config: PlaygroundRunConfig;
+    results: PlaygroundRunResultItem[];
+  }) => api.post<PlaygroundRunData>('/playground/runs', data),
+  getRunsByVersion: (versionId: string, limit = 10) =>
+    api.get<PlaygroundRunData[]>(`/playground/runs/by-version/${versionId}?limit=${limit}`),
+  runVersions: (data: {
+    versions: {
+      version_id: string;
+      model: string;
+      temperature?: number;
+      max_tokens?: number;
+      top_p?: number;
+      reasoning_effort?: string;
+    }[];
+    variables: Record<string, unknown>;
+  }) => api.post<{ results: VersionRunResult[] }>('/playground/run-versions', data),
 };
 
 export const datasetsApi = {

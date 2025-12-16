@@ -17,14 +17,16 @@ interface MultiModelSelectorProps {
   onChange: (models: ModelConfig[]) => void
 }
 
-let modelIdCounter = 1
+function generateModelId(): string {
+  return `model-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
 
 export function MultiModelSelector({ selectedModels, onChange }: MultiModelSelectorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const addModel = () => {
     const newModel: ModelConfig = {
-      id: `model-${modelIdCounter++}`,
+      id: generateModelId(),
       model: 'gpt-4o',
       provider: 'openai',
       temperature: 0.7,
@@ -233,11 +235,10 @@ export function MultiModelSelector({ selectedModels, onChange }: MultiModelSelec
   )
 }
 
-// Create default model configs
 export function createDefaultModelConfigs(): ModelConfig[] {
   return [
     {
-      id: `model-${modelIdCounter++}`,
+      id: generateModelId(),
       model: 'gpt-4o',
       provider: 'openai',
       temperature: 0.7,

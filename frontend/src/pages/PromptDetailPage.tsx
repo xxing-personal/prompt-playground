@@ -12,9 +12,11 @@ import {
   VariableSidePanel,
   MultiModelSelector,
   ResultsComparisonTable,
+  RunHistoryPanel,
   createDefaultModelConfigs,
   type ModelConfig,
 } from '../components/playground'
+import { useSavePlaygroundRun, type RunHistoryEntry } from '../hooks/usePlaygroundRuns'
 import { VersionDiffModal } from '../components/prompt-editor'
 import {
   usePrompt,
@@ -26,6 +28,7 @@ import {
   usePromoteVersion,
   useDemoteVersion,
   useMultiModelRun,
+  useUseCase,
 } from '../hooks'
 import { TagEditor } from '../components/shared'
 
@@ -53,10 +56,11 @@ export function PromptDetailPage() {
   const [selectedModels, setSelectedModels] = useState<ModelConfig[]>(createDefaultModelConfigs())
 
   // Multi-model execution hook
-  const { isRunning, runningModels, resultsArray, runMultiModel, clearResults } = useMultiModelRun()
+  const { isRunning, runningModels, resultsArray, runMultiModel, clearResults, setResults } = useMultiModelRun()
 
   // Queries
   const { data: prompt } = usePrompt(promptId)
+  const { data: useCase } = useUseCase(prompt?.use_case_id)
   const { data: versions } = usePromptVersions(promptId)
   const { data: datasets } = useDatasets(prompt?.use_case_id)
   const createVersionMutation = useCreateVersion(promptId)
@@ -133,6 +137,8 @@ export function PromptDetailPage() {
     setHasUnsavedChanges(false)
   }
 
+  const saveRunMutation = useSavePlaygroundRun()
+
   const handleRunMulti = async () => {
     const enabledModels = selectedModels.filter((m) => m.enabled)
     if (enabledModels.length === 0) return
@@ -143,7 +149,40 @@ export function PromptDetailPage() {
       templateMessages: promptType === 'chat' ? messages : undefined,
       variables,
       models: enabledModels,
+      onComplete: (params, results) => {
+        if (promptId) {
+          saveRunMutation.mutate({
+            promptId,
+            versionId: selectedVersionId || undefined,
+            config: {
+              templateType: params.templateType,
+              templateText: params.templateText,
+              templateMessages: params.templateMessages,
+              variables: params.variables,
+              models: params.models,
+            },
+            results,
+          })
+        }
+      },
     })
+  }
+
+  const handleLoadRun = (entry: RunHistoryEntry) => {
+    // Restore configuration
+    setPromptType(entry.config.templateType)
+    if (entry.config.templateText !== undefined) {
+      setTemplate(entry.config.templateText)
+    }
+    if (entry.config.templateMessages) {
+      setMessages(entry.config.templateMessages)
+    }
+    setVariables(entry.config.variables)
+    setSelectedModels(entry.config.models)
+    // Restore results
+    if (entry.results && entry.results.length > 0) {
+      setResults(entry.results)
+    }
   }
 
   const handleCreateEvalRun = async () => {
@@ -161,8 +200,8 @@ export function PromptDetailPage() {
       })
       setShowEvalModal(false)
       window.location.href = `/eval-runs/${response.data.id}`
-    } catch (e) {
-      console.error('Failed to create eval run:', e)
+    } catch {
+      // Error is handled by mutation's error state
     }
   }
 
@@ -177,7 +216,11 @@ export function PromptDetailPage() {
       <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">
           <Breadcrumbs
-            items={[{ label: 'Projects', href: '/' }, { label: prompt?.name || '' }]}
+            items={[
+              { label: 'Projects', href: '/' },
+              ...(useCase ? [{ label: useCase.name, href: `/use-cases/${useCase.id}`, className: 'hidden sm:block max-w-[12rem] truncate' }] : []),
+              { label: prompt?.name || '' }
+            ]}
           />
           {prompt?.tags && (
             <div className="h-4 w-px bg-slate-200 mx-2" />
@@ -292,6 +335,14 @@ export function PromptDetailPage() {
               isRunning={isRunning}
               runningModels={runningModels}
             />
+
+            {/* Run History */}
+            {selectedVersionId && (
+              <RunHistoryPanel
+                versionId={selectedVersionId}
+                onLoadRun={handleLoadRun}
+              />
+            )}
           </div>
         </main>
 
@@ -328,6 +379,10 @@ export function PromptDetailPage() {
         onClose={() => setShowDiff(false)}
         oldVersion={versions?.items.find((v) => v.id === compareVersionId) || null}
         newVersion={selectedVersion || null}
+        variables={variables}
+        model={selectedModels.find((m) => m.enabled)?.model || 'openai/gpt-4o'}
+        temperature={selectedModels.find((m) => m.enabled)?.temperature || 0.7}
+        maxTokens={selectedModels.find((m) => m.enabled)?.maxTokens || 1024}
       />
 
       {/* Evaluation Modal */}

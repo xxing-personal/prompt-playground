@@ -2,11 +2,6 @@
 
 Welcome to the Prompt Playground! This guide will help you navigate the application, manage your prompts, and run evaluations to ensure high-quality outputs.
 
-## Live Demo
-> [!NOTE]
-> Detailed walkthrough of the application flows:
-> ![Walkthrough Video](assets/walkthrough.webp)
-
 ## 1. Projects Dashboard
 The **Projects** page is your home base. Here you can see all your active projects and their high-level statistics.
 - **Projects**: Group your work by domain or application.
@@ -44,6 +39,19 @@ Use the **Diff View** to see exactly what changed between two versions.
 - **Red**: Removed lines.
 
 ![Diff View](screenshots/05_diff_view.png)
+
+### Output Comparison
+Compare how two versions perform with the same input:
+1. Click **"diff"** next to a version in the dropdown
+2. Switch to the **"Output Comparison"** tab
+3. Click **"Settings"** to configure model and variables
+4. Click **"Run Both Versions"** to see side-by-side outputs
+
+## 5. Run History
+Your playground runs are automatically saved per version:
+- View recent runs in the collapsible **Run History** panel
+- Click any run to restore its configuration and results
+- History is specific to each prompt version
 
 ## 6. Multi-Model Testing
 Compare how different models respond to the same prompt instantly.

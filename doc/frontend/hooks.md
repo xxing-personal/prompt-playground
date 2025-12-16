@@ -337,41 +337,51 @@ Manage multi-model comparison runs.
 import { useMultiModelRun } from '@/hooks/useMultiModelRun'
 
 const {
-  models,
-  addModel,
-  removeModel,
-  updateModel,
-  results,
   isRunning,
-  run,
-  clear
+  runningModels,
+  resultsArray,
+  runMultiModel,
+  clearResults,
+  setResults
 } = useMultiModelRun()
 
-// Add models
-addModel({ id: 'gpt4o', model: 'gpt-4o', temperature: 0.7 })
-addModel({ id: 'claude', model: 'claude-3-5-sonnet-20241022' })
-
-// Update model config
-updateModel('gpt4o', { temperature: 0.5 })
-
-// Remove model
-removeModel('claude')
-
-// Run all models
-await run({
-  type: 'text',
-  template_text: 'Hello {{name}}',
-  variables: { name: 'World' }
+// Run multiple models
+await runMultiModel({
+  templateType: 'chat',
+  templateText: null,
+  templateMessages: [...],
+  variables: { name: 'World' },
+  models: [
+    { id: 'gpt4o', model: 'gpt-4o', temperature: 0.7 },
+    { id: 'claude', model: 'claude-3-5-sonnet-20241022', temperature: 0.7 }
+  ],
+  versionId: '...',
+  promptId: '...',
+  onComplete: (results) => console.log('Done!', results)
 })
 
 // Access results
-results.forEach(r => {
-  console.log(`${r.model_id}: ${r.output}`)
+resultsArray.forEach(r => {
+  console.log(`${r.modelId}: ${r.output}`)
 })
 
+// Restore results from history
+setResults(savedResults)
+
 // Clear results
-clear()
+clearResults()
 ```
+
+**Return Values:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| isRunning | `boolean` | Any model currently running |
+| runningModels | `Set<string>` | Set of currently running model IDs |
+| resultsArray | `ExecutionResult[]` | Array of all results |
+| runMultiModel | `(params) => Promise` | Execute multiple models |
+| clearResults | `() => void` | Clear all results |
+| setResults | `(results) => void` | Set results (for restoring from history) |
 
 ---
 
@@ -605,6 +615,60 @@ const items = data?.pages.flatMap(page => page.items) ?? []
 
 ---
 
+### usePlaygroundRuns
+
+Fetch and save playground run history for a prompt version.
+
+```tsx
+import { usePlaygroundRuns, useSavePlaygroundRun } from '@/hooks/usePlaygroundRuns'
+
+// Fetch runs for a version
+const { data: runs, isLoading } = usePlaygroundRuns(versionId, 5)
+
+// Save a new run
+const saveMutation = useSavePlaygroundRun()
+await saveMutation.mutateAsync({
+  promptId: '...',
+  versionId: '...',
+  config: {
+    templateType: 'chat',
+    templateText: null,
+    templateMessages: [...],
+    variables: { question: 'Hello' },
+    models: ['gpt-4o']
+  },
+  results: [
+    { modelId: 'gpt-4o', output: '...', latencyMs: 450, tokens: {...} }
+  ]
+})
+```
+
+**usePlaygroundRuns Return:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| data | `RunHistoryEntry[]` | Array of run history entries |
+| isLoading | `boolean` | Loading state |
+
+**RunHistoryEntry Type:**
+
+```tsx
+interface RunHistoryEntry {
+  id: string
+  timestamp: Date
+  config: {
+    templateType: string
+    templateText: string | null
+    templateMessages: ChatMessage[] | null
+    variables: Record<string, string>
+    models: string[]
+  }
+  results: ExecutionResult[]
+}
+```
+
+---
+
 ## Related Documentation
 
 - [Frontend Architecture](../architecture/frontend-architecture.md)
@@ -613,4 +677,4 @@ const items = data?.pages.flatMap(page => page.items) ?? []
 
 ---
 
-*Hooks documentation generated December 2024*
+*Hooks documentation updated December 2024*

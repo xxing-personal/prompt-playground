@@ -10,6 +10,9 @@ The Playground API enables testing prompts against LLMs in real-time.
 | POST | `/api/v1/playground/run` | Execute template against LLM |
 | POST | `/api/v1/playground/run-version/{id}` | Execute a saved version |
 | POST | `/api/v1/playground/run-multi` | Execute multiple models in parallel |
+| POST | `/api/v1/playground/run-versions` | Execute multiple versions in parallel |
+| POST | `/api/v1/playground/runs` | Save a playground run to history |
+| GET | `/api/v1/playground/runs/by-version/{id}` | Get run history for a version |
 
 ---
 
@@ -480,6 +483,174 @@ try {
 
 ---
 
+## Run Multiple Versions
+
+Execute multiple prompt versions in parallel with the same variables. Useful for A/B testing different prompt versions.
+
+```http
+POST /api/v1/playground/run-versions
+```
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| versions | array | Yes | Array of version configurations |
+| variables | object | Yes | Variable values (shared across all versions) |
+
+### Version Configuration
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| version_id | UUID | Yes | Prompt version ID |
+| model | string | Yes | Model name |
+| temperature | number | No | 0.0-2.0 (default: 0.7) |
+| max_tokens | integer | No | Max response tokens |
+| top_p | number | No | 0.0-1.0 |
+| reasoning_effort | string | No | For reasoning models (low/medium/high) |
+
+### Request Example
+
+```json
+{
+  "versions": [
+    {
+      "version_id": "880e8400-e29b-41d4-a716-446655440001",
+      "model": "gpt-4o",
+      "temperature": 0.7,
+      "max_tokens": 1024
+    },
+    {
+      "version_id": "880e8400-e29b-41d4-a716-446655440002",
+      "model": "gpt-4o",
+      "temperature": 0.7,
+      "max_tokens": 1024
+    }
+  ],
+  "variables": {
+    "company_name": "Acme Inc",
+    "question": "What are your business hours?"
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "results": [
+    {
+      "version_id": "880e8400-e29b-41d4-a716-446655440001",
+      "version_number": 1,
+      "output": "Our business hours are...",
+      "metrics": {
+        "latency_ms": 850,
+        "prompt_tokens": 45,
+        "completion_tokens": 42,
+        "total_tokens": 87,
+        "cost_usd": 0.00261
+      },
+      "error": null
+    },
+    {
+      "version_id": "880e8400-e29b-41d4-a716-446655440002",
+      "version_number": 2,
+      "output": "Thank you for asking! Our hours are...",
+      "metrics": {
+        "latency_ms": 920,
+        "prompt_tokens": 52,
+        "completion_tokens": 55,
+        "total_tokens": 107,
+        "cost_usd": 0.00321
+      },
+      "error": null
+    }
+  ]
+}
+```
+
+---
+
+## Save Playground Run
+
+Save a playground run to the database for history tracking.
+
+```http
+POST /api/v1/playground/runs
+```
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| prompt_id | UUID | Yes | Parent prompt ID |
+| version_id | UUID | No | Specific version ID |
+| config | object | Yes | Run configuration |
+| results | array | Yes | Array of run results |
+
+### Request Example
+
+```json
+{
+  "prompt_id": "880e8400-e29b-41d4-a716-446655440000",
+  "version_id": "880e8400-e29b-41d4-a716-446655440001",
+  "config": {
+    "templateType": "chat",
+    "templateText": null,
+    "templateMessages": [{"role": "user", "content": "{{question}}"}],
+    "variables": {"question": "Hello"},
+    "models": ["gpt-4o"]
+  },
+  "results": [
+    {
+      "modelId": "gpt-4o",
+      "output": "Hello! How can I help?",
+      "latencyMs": 450,
+      "tokens": {"prompt": 10, "completion": 8, "total": 18}
+    }
+  ]
+}
+```
+
+---
+
+## Get Run History
+
+Get recent playground runs for a specific prompt version.
+
+```http
+GET /api/v1/playground/runs/by-version/{versionId}?limit=10
+```
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| versionId | UUID | Prompt version ID |
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| limit | integer | 10 | Max results to return |
+
+### Response
+
+```json
+[
+  {
+    "id": "990e8400-e29b-41d4-a716-446655440000",
+    "prompt_id": "880e8400-e29b-41d4-a716-446655440000",
+    "version_id": "880e8400-e29b-41d4-a716-446655440001",
+    "config": {...},
+    "results": [...],
+    "created_at": "2024-12-15T10:30:00Z"
+  }
+]
+```
+
+---
+
 ## Related Endpoints
 
 - [Prompts API](./prompts.md) - Save tested templates
@@ -487,4 +658,4 @@ try {
 
 ---
 
-*API documentation generated December 2024*
+*API documentation updated December 2024*

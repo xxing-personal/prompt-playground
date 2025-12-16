@@ -177,18 +177,19 @@ prompt-playground/
 ### Supported Models
 
 **OpenAI:**
+- gpt-5.2, gpt-5-mini, gpt-5-nano
 - gpt-4o, gpt-4o-mini
 - gpt-4-turbo, gpt-4
 - gpt-3.5-turbo
 
 **Anthropic:**
+- claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5
 - claude-3-5-sonnet-20241022
 - claude-3-opus-20240229
-- claude-3-sonnet-20240229
-- claude-3-haiku-20240307
 
-**Google (via API):**
-- gemini-pro, gemini-pro-vision
+**Google:**
+- gemini-3.0-pro-preview, gemini-3.0-deep-think-preview
+- gemini-2.5-flash
 
 ## API Documentation
 
@@ -202,6 +203,9 @@ Interactive API documentation is available at `/docs` when the backend is runnin
 | `POST /api/v1/projects` | Create a new project |
 | `GET /api/v1/prompts/{id}/versions` | List prompt versions |
 | `POST /api/v1/playground/run` | Execute a prompt |
+| `POST /api/v1/playground/run-versions` | Compare multiple versions |
+| `POST /api/v1/playground/runs` | Save run to history |
+| `GET /api/v1/playground/runs/by-version/{id}` | Get run history |
 | `POST /api/v1/eval-runs` | Start an evaluation |
 
 See the [API Reference](./doc/api/overview.md) for complete documentation.

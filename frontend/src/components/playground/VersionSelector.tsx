@@ -35,6 +35,13 @@ export function VersionSelector({
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedVersion = versions.find(v => v.id === selectedId)
 
+  // Reset nested menu when parent closes
+  useEffect(() => {
+    if (!isOpen) {
+      setMenuOpenFor(null)
+    }
+  }, [isOpen])
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -64,7 +71,7 @@ export function VersionSelector({
         <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
       {isOpen && versions.length > 0 && (
-        <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-auto">
+        <div className="absolute right-0 mt-1 min-w-[24rem] w-max max-w-[90vw] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
           {versions.map((v) => (
             <div
               key={v.id}
@@ -73,7 +80,7 @@ export function VersionSelector({
             >
               <button
                 onClick={() => onSelect(v.id)}
-                className="flex items-center gap-2 flex-1 text-left"
+                className="flex items-center gap-2 flex-1 text-left whitespace-nowrap"
               >
                 <span>Version {v.version_number}</span>
                 {v.labels?.map(label => (

@@ -38,7 +38,12 @@ src/components/
 │   ├── VirtualizedResultsTable.tsx
 │   └── ResultDetailPanel.tsx
 │
-├── prompt-editor/         # Prompt editing
+├── prompt-editor/         # Prompt editing & version comparison
+│   ├── VersionDiffModal.tsx
+│   ├── VersionOutputComparison.tsx
+│   ├── DiffHeader.tsx
+│   └── DiffStats.tsx
+│
 └── export/                # Export functionality
 ```
 
@@ -761,6 +766,102 @@ import { cn } from '@/lib/utils'
 
 ---
 
+## Prompt Editor Components
+
+### VersionDiffModal
+
+Modal for comparing two prompt versions with template diff and output comparison.
+
+```tsx
+import { VersionDiffModal } from '@/components/prompt-editor/VersionDiffModal'
+
+<VersionDiffModal
+  isOpen={showDiff}
+  onClose={() => setShowDiff(false)}
+  oldVersion={previousVersion}
+  newVersion={currentVersion}
+  variables={variableValues}
+  model="gpt-4o"
+  temperature={0.7}
+  maxTokens={1024}
+/>
+```
+
+**Features:**
+- Two tabs: "Template Diff" and "Output Comparison"
+- Side-by-side text diff with additions/deletions highlighting
+- Run both versions with same settings and compare outputs
+- State preserved when switching tabs
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| isOpen | `boolean` | Modal open state |
+| onClose | `() => void` | Close handler |
+| oldVersion | `PromptVersion` | Base version to compare |
+| newVersion | `PromptVersion` | Target version to compare |
+| variables | `Record<string, string>` | Variable values for output comparison |
+| model | `string` | Model for output comparison |
+| temperature | `number` | Temperature setting |
+| maxTokens | `number` | Max tokens setting |
+
+---
+
+### VersionOutputComparison
+
+Compare outputs from running two prompt versions with the same model and settings.
+
+```tsx
+import { VersionOutputComparison } from '@/components/prompt-editor/VersionOutputComparison'
+
+<VersionOutputComparison
+  oldVersion={versionA}
+  newVersion={versionB}
+  variables={{ question: "Hello" }}
+  model="gpt-4o"
+  temperature={0.7}
+  maxTokens={1024}
+/>
+```
+
+**Features:**
+- Expandable settings panel with model selector
+- Temperature and max tokens controls
+- Auto-detected template variables with input fields
+- Side-by-side output display with latency metrics
+- Error handling for failed runs
+
+---
+
+### RunHistoryPanel
+
+Collapsible panel showing recent playground runs for a prompt version.
+
+```tsx
+import { RunHistoryPanel } from '@/components/playground/RunHistoryPanel'
+
+<RunHistoryPanel
+  versionId={selectedVersionId}
+  onLoadRun={(entry) => restoreRunState(entry)}
+/>
+```
+
+**Features:**
+- Shows last 5 runs for the current version
+- Displays timestamp, models used, and variable count
+- Click to restore run configuration and results
+- Collapsible to save screen space
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| versionId | `string` | Current prompt version ID |
+| onLoadRun | `(entry: RunHistoryEntry) => void` | Handler to restore a historical run |
+
+---
+
 ## Related Documentation
 
 - [Frontend Architecture](../architecture/frontend-architecture.md)
@@ -769,4 +870,4 @@ import { cn } from '@/lib/utils'
 
 ---
 
-*Component documentation generated December 2024*
+*Component documentation updated December 2024*

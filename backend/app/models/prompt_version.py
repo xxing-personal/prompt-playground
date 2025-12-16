@@ -33,6 +33,7 @@ class PromptVersion(Base):
     # Relationships
     prompt = relationship("Prompt", back_populates="versions")
     eval_runs = relationship("EvalRun", back_populates="prompt_version")
+    playground_runs = relationship("PlaygroundRun", back_populates="version")
 
     __table_args__ = (
         UniqueConstraint("prompt_id", "version_number", name="uq_prompt_version"),

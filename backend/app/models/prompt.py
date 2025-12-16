@@ -16,6 +16,7 @@ class Prompt(Base, UUIDMixin, TimestampMixin):
     # Relationships
     use_case = relationship("UseCase", back_populates="prompts")
     versions = relationship("PromptVersion", back_populates="prompt", cascade="all, delete-orphan", order_by="PromptVersion.version_number.desc()")
+    playground_runs = relationship("PlaygroundRun", back_populates="prompt", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Prompt(id={self.id}, name={self.name})>"

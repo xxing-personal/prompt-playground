@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Markdown from 'react-markdown'
 import { ChevronDown, ChevronUp, Copy, Check, AlertCircle, Clock, Coins } from 'lucide-react'
 import ReactDiffViewer from 'react-diff-viewer-continued'
 import { ExecutionResult } from '../../hooks/useMultiModelRun'
@@ -14,9 +15,22 @@ export function ResultsComparisonTable({
   isRunning,
   runningModels,
 }: ResultsComparisonTableProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // Use a Set to track multiple expanded items
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [compareIds, setCompareIds] = useState<[string, string] | null>(null)
+
+  const toggleExpanded = (id: string, expand: boolean) => {
+    setExpandedIds((prev: Set<string>) => {
+      const next = new Set(prev)
+      if (expand) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
 
   const copyToClipboard = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text)
@@ -84,7 +98,7 @@ export function ResultsComparisonTable({
         ))}
 
         {results.map((result) => {
-          const isExpanded = expandedId === result.modelId
+          const isExpanded = expandedIds.has(result.modelId)
           const isComparing = compareIds?.includes(result.modelId)
           const isLoading = runningModels.has(result.modelId)
 
@@ -150,8 +164,12 @@ export function ResultsComparisonTable({
                       <span>{result.error}</span>
                     </div>
                   ) : (
-                    <div className="whitespace-pre-wrap break-words">
-                      {result.output || <span className="text-slate-400 italic">No output generated</span>}
+                    <div className="prose prose-sm prose-slate max-w-none">
+                      {result.output ? (
+                        <Markdown>{result.output}</Markdown>
+                      ) : (
+                        <span className="text-slate-400 italic">No output generated</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -160,7 +178,7 @@ export function ResultsComparisonTable({
                 {result.output && result.output.length > 300 && !isExpanded && (
                   <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent flex items-end justify-center pb-2 pointer-events-none">
                     <button
-                      onClick={() => setExpandedId(result.modelId)}
+                      onClick={() => toggleExpanded(result.modelId, true)}
                       className="pointer-events-auto flex items-center gap-1 px-3 py-1 bg-white border border-slate-200 shadow-sm rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all"
                     >
                       <ChevronDown className="w-3 h-3" /> Show more
@@ -170,7 +188,7 @@ export function ResultsComparisonTable({
                 {isExpanded && result.output && result.output.length > 300 && (
                   <div className="flex justify-center py-2 border-t border-slate-100 bg-slate-50/30">
                     <button
-                      onClick={() => setExpandedId(null)}
+                      onClick={() => toggleExpanded(result.modelId, false)}
                       className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
                     >
                       <ChevronUp className="w-3 h-3" /> Show less
